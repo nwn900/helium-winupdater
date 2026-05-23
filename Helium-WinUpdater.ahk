@@ -333,15 +333,6 @@ GetCurrentVersion() {
 
 	GuiControl,, VerField, Helium %CurrentVersion% (Chromium %CurrentExeVersion%, %Build%)
 }
-		}
-
-	If (!CurrentVersion)
-		Die(_GetVersionError, Path)
-
-	Build := GetCurrentBuild()
-
-	GuiControl,, VerField, %CurrentVersion% (%Build%)
-}
 
 GetCurrentBuild() {
 	Try {
