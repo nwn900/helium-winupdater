@@ -17,7 +17,7 @@
 
 Global Args       := ""
 , Browser         := "Helium"
-, BrowserExe      := "helium.exe"
+, BrowserExe      := "chrome.exe"
 , BrowserPortable := "Helium\" BrowserExe
 , ConnectCheckUrl := "https://api.github.com"
 , ReleaseApiUrl   := "https://api.github.com/repos/imputnet/helium-windows/releases/latest"
