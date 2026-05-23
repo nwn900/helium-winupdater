@@ -215,9 +215,13 @@ CheckPaths() {
 	Else {
 		IniRead, Path, %IniFile%, Settings, Path, 0
 		If (!Path) {
-			RegRead, Path, HKLM\SOFTWARE\Clients\StartMenuInternet\%Browser%\shell\open\command
-			If (ErrorLevel Or !InStr(Path, BrowserExe))
-				Path := ProgramW6432 "\" Browser "\" BrowserExe
+			EnvGet, LocalAppData, Local AppData
+			Path := LocalAppData "\imput\" Browser "\Application\" BrowserExe
+			If (!FileExist(Path)) {
+				RegRead, Path, HKLM\SOFTWARE\Clients\StartMenuInternet\%Browser%\shell\open\command
+				If (ErrorLevel Or !InStr(Path, BrowserExe))
+					Path := ProgramW6432 "\" Browser "\" BrowserExe
+			}
 		}
 		Path := Trim(Path, """")
 	}
@@ -243,7 +247,9 @@ CheckPaths() {
 	CheckPath:
 	If (!FileExist(Path)) {
 		MsgBox, 48, %_Updater%, %_GetPathError%
-		FileSelectFile, Path, 3, %Path%, %_SelectFileTitle%, %BrowserExe%
+		EnvGet, LocalAppData, Local AppData
+		DefaultSearchDir := LocalAppData "\imput\Helium\Application"
+		FileSelectFile, Path, 3, %DefaultSearchDir%\%BrowserExe%, %_SelectFileTitle%, %BrowserExe%
 		If (ErrorLevel)
 			ExitApp
 		Else {
