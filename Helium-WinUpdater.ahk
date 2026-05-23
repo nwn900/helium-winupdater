@@ -1,7 +1,7 @@
 ; Helium WinUpdater - https://github.com/nwn900/helium-winupdater
 ; Based on LibreWolf WinUpdater by ltguillaume - https://codeberg.org/librewolf/winupdater
-;@Ahk2Exe-SetFileVersion 1.0.0
-;@Ahk2Exe-SetProductVersion 1.0.0
+;@Ahk2Exe-SetFileVersion 1.0.7
+;@Ahk2Exe-SetProductVersion 1.0.7
 
 ;@Ahk2Exe-Base Unicode 32*
 ;@Ahk2Exe-SetCompanyName Helium Community
@@ -118,7 +118,7 @@ Init() {
 	IniFile := A_ScriptDir "\" BaseName ".ini"
 	IniRead, IgnoreCrlErrors, %IniFile%, Settings, IgnoreCrlErrors, 0
 	IniRead, NoSigChecks, %IniFile%, Settings, NoSigChecks, 1
-	IniRead, UpdateSelf, %IniFile%, Settings, UpdateSelf, 1
+	IniRead, UpdateSelf, %IniFile%, Settings, UpdateSelf, 0
 	IniRead, WorkDir, %IniFile%, Settings, WorkDir, %A_Temp%
 	IniWrite, %IgnoreCrlErrors%, %IniFile%, Settings, IgnoreCrlErrors
 	IniWrite, %NoSigChecks%, %IniFile%, Settings, NoSigChecks
