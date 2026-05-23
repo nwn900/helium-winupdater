@@ -306,9 +306,20 @@ CheckWriteAccess() {
 
 GetCurrentVersion() {
 	If (Sz := DllCall("Version\GetFileVersionInfoSizeW", "WStr", Path, "Int", 0))
-		If (DllCall("Version\GetFileVersionInfoW", "WStr", Path, "Int", 0, "UInt", VarSetCapacity(V, Sz), "Str", V))
-			If (DllCall("Version\VerQueryValueW", "Str", V, "WStr", "\StringFileInfo\000004B0\ProductVersion", "PtrP", pInfo, "Int", 0))
-				CurrentVersion := StrGet(pInfo, "UTF-16")
+		If (DllCall("Version\GetFileVersionInfoW", "WStr", Path, "Int", 0, "UInt", VarSetCapacity(V, Sz), "Str", V)) {
+			; Try FileVersion first (Chromium uses this), then ProductVersion, across common language blocks
+			Loop, Parse, % "040904B0,000004B0", `,
+			{
+				If (DllCall("Version\VerQueryValueW", "Str", V, "WStr", "\StringFileInfo\" A_LoopField "\FileVersion", "PtrP", pInfo, "Int", 0))
+					CurrentVersion := StrGet(pInfo, "UTF-16")
+				If (CurrentVersion)
+					Break
+				If (DllCall("Version\VerQueryValueW", "Str", V, "WStr", "\StringFileInfo\" A_LoopField "\ProductVersion", "PtrP", pInfo, "Int", 0))
+					CurrentVersion := StrGet(pInfo, "UTF-16")
+				If (CurrentVersion)
+					Break
+			}
+		}
 
 	If (!CurrentVersion)
 		Die(_GetVersionError, Path)
