@@ -1,4 +1,4 @@
-; Helium WinUpdater - https://github.com/imputnet/helium
+; Helium WinUpdater - https://github.com/nwn900/helium-winupdater
 ; Based on LibreWolf WinUpdater by ltguillaume - https://codeberg.org/librewolf/winupdater
 ;@Ahk2Exe-SetFileVersion 1.0.0
 ;@Ahk2Exe-SetProductVersion 1.0.0
@@ -25,7 +25,7 @@ Global Args       := ""
 , BrowserPortable := "Helium\" BrowserExe
 , ConnectCheckUrl := "https://api.github.com"
 , ReleaseApiUrl   := "https://api.github.com/repos/imputnet/helium-windows/releases/latest"
-, UpdaterApiUrl   := "https://api.github.com/repos/imputnet/helium/releases/latest"
+, UpdaterApiUrl   := "https://api.github.com/repos/nwn900/helium-winupdater/releases/latest"
 , SetupParams     := "/D={}"
 , TaskCreateFile  := "ScheduledTask-Create.ps1"
 , TaskRemoveFile  := "ScheduledTask-Remove.ps1"
@@ -122,7 +122,7 @@ Init() {
 	IniFile := A_ScriptDir "\" BaseName ".ini"
 	IniRead, IgnoreCrlErrors, %IniFile%, Settings, IgnoreCrlErrors, 0
 	IniRead, NoSigChecks, %IniFile%, Settings, NoSigChecks, 1
-	IniRead, UpdateSelf, %IniFile%, Settings, UpdateSelf, 0
+	IniRead, UpdateSelf, %IniFile%, Settings, UpdateSelf, 1
 	IniRead, WorkDir, %IniFile%, Settings, WorkDir, %A_Temp%
 	IniWrite, %IgnoreCrlErrors%, %IniFile%, Settings, IgnoreCrlErrors
 	IniWrite, %NoSigChecks%, %IniFile%, Settings, NoSigChecks
