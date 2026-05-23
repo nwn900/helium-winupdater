@@ -1,0 +1,19 @@
+# Compiled binaries
+*.exe
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# AHK compilation artifacts
+*.wubak
+
+# Temp extraction directory
+*Extracted/
+
+# INI files (user config)
+*.ini
+
+# OS files
+Thumbs.db
+Desktop.ini
