@@ -215,7 +215,7 @@ CheckPaths() {
 	Else {
 		IniRead, Path, %IniFile%, Settings, Path, 0
 		If (!Path) {
-			EnvGet, LocalAppData, Local AppData
+			EnvGet, LocalAppData, LOCALAPPDATA
 			Path := LocalAppData "\imput\" Browser "\Application\" BrowserExe
 			If (!FileExist(Path)) {
 				RegRead, Path, HKLM\SOFTWARE\Clients\StartMenuInternet\%Browser%\shell\open\command
@@ -247,7 +247,7 @@ CheckPaths() {
 	CheckPath:
 	If (!FileExist(Path)) {
 		MsgBox, 48, %_Updater%, %_GetPathError%
-		EnvGet, LocalAppData, Local AppData
+		EnvGet, LocalAppData, LOCALAPPDATA
 		DefaultSearchDir := LocalAppData "\imput\Helium\Application"
 		FileSelectFile, Path, 3, %DefaultSearchDir%\%BrowserExe%, %_SelectFileTitle%, %BrowserExe%
 		If (ErrorLevel)
