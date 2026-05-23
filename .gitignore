@@ -1,13 +1,3 @@
-# Compiled binaries
-*.exe
-
-# IDE / Editor
-.vscode/
-.idea/
-
-# AHK compilation artifacts
-*.wubak
-
 # Temp extraction directory
 *Extracted/
 
