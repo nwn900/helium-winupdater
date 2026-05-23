@@ -119,6 +119,7 @@ Init() {
 	IniRead, IgnoreCrlErrors, %IniFile%, Settings, IgnoreCrlErrors, 0
 	IniRead, NoSigChecks, %IniFile%, Settings, NoSigChecks, 1
 	IniRead, UpdateSelf, %IniFile%, Settings, UpdateSelf, 0
+	UpdateSelf := 0  ; Force off — self-update mechanism not compatible with release packaging
 	IniRead, WorkDir, %IniFile%, Settings, WorkDir, %A_Temp%
 	IniWrite, %IgnoreCrlErrors%, %IniFile%, Settings, IgnoreCrlErrors
 	IniWrite, %NoSigChecks%, %IniFile%, Settings, NoSigChecks
