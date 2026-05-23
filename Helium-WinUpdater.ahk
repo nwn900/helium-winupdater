@@ -34,7 +34,7 @@ Global Args       := ""
 , ChangesMade     := False
 , Done            := False
 , IniFile, Path, Folder, ProgramW6432, WorkDir, ExtractDir, Build, IgnoreCrlErrors, NoSigChecks, UpdateSelf, Task, CurrentDomain, CurrentUpdaterVersion
-, ReleaseInfo, CurrentVersion, NewVersion, SetupFile, GuiHwnd, LogField, ProgField, VerField, TaskSetField, UpdateButton, ShutdownBlocked, Died
+, ReleaseInfo, CurrentVersion, CurrentExeVersion, NewVersion, SetupFile, GuiHwnd, LogField, ProgField, VerField, TaskSetField, UpdateButton, ShutdownBlocked, Died
 
 ; Strings
 Global _Updater       := Browser " WinUpdater"
@@ -305,20 +305,34 @@ CheckWriteAccess() {
 }
 
 GetCurrentVersion() {
+	; Read chrome.exe FileVersion for display (Chromium version, e.g. 148.0.7778.178)
 	If (Sz := DllCall("Version\GetFileVersionInfoSizeW", "WStr", Path, "Int", 0))
 		If (DllCall("Version\GetFileVersionInfoW", "WStr", Path, "Int", 0, "UInt", VarSetCapacity(V, Sz), "Str", V)) {
-			; Try FileVersion first (Chromium uses this), then ProductVersion, across common language blocks
 			Loop, Parse, % "040904B0,000004B0", `,
 			{
 				If (DllCall("Version\VerQueryValueW", "Str", V, "WStr", "\StringFileInfo\" A_LoopField "\FileVersion", "PtrP", pInfo, "Int", 0))
-					CurrentVersion := StrGet(pInfo, "UTF-16")
-				If (CurrentVersion)
+					CurrentExeVersion := StrGet(pInfo, "UTF-16")
+				If (CurrentExeVersion)
 					Break
 				If (DllCall("Version\VerQueryValueW", "Str", V, "WStr", "\StringFileInfo\" A_LoopField "\ProductVersion", "PtrP", pInfo, "Int", 0))
-					CurrentVersion := StrGet(pInfo, "UTF-16")
-				If (CurrentVersion)
+					CurrentExeVersion := StrGet(pInfo, "UTF-16")
+				If (CurrentExeVersion)
 					Break
 			}
+		}
+
+	If (!CurrentExeVersion)
+		Die(_GetVersionError, Path)
+
+	Build := GetCurrentBuild()
+
+	; Use INI-stored Helium version for comparison (GitHub tags are Helium versions, not Chromium)
+	IniRead, CurrentVersion, %IniFile%, Log, LastUpdateTo, 0
+	If (CurrentVersion = "0")
+		CurrentVersion := "0.0.0.0"
+
+	GuiControl,, VerField, Helium %CurrentVersion% (Chromium %CurrentExeVersion%, %Build%)
+}
 		}
 
 	If (!CurrentVersion)
