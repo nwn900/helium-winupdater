@@ -1,7 +1,7 @@
 ; Helium WinUpdater - https://github.com/nwn900/helium-winupdater
 ; Based on LibreWolf WinUpdater by ltguillaume - https://codeberg.org/librewolf/winupdater
-;@Ahk2Exe-SetFileVersion 1.0.7
-;@Ahk2Exe-SetProductVersion 1.0.7
+;@Ahk2Exe-SetFileVersion 1.0.10
+;@Ahk2Exe-SetProductVersion 1.0.10
 
 ;@Ahk2Exe-Base Unicode 32*
 ;@Ahk2Exe-SetCompanyName Helium Community
@@ -145,6 +145,7 @@ Init() {
 	Gui, Add, Progress, vProgField w217 h20 cC0D9FF, 10
 	Gui, Add, Text, vLogField w222
 	Gui, Margin,, 15
+	Gui, Add, Button, vUpdateButton gInstall w148 x86 y+10 Hidden Default, %_StartUpdate%
 	Gui, Show, Hide, %_Updater% %CurrentUpdaterVersion%
 
 	If (SettingTask Or !A_Args.Length()) {
@@ -498,11 +499,38 @@ BrowserWaitClose() {
 			Notify(_NewVersionFound)
 			Notified := True
 		}
-		ReleaseMem()
-		Process, WaitClose, % Proc.ProcessId
-		Goto, Wait
+
+		; Check if this PID has a visible browser window (skip background-only processes)
+		HasWindow := 0
+		WinGet, Windows, List, ahk_class Chrome_WidgetWin_1
+		Loop, %Windows% {
+			WinGet, WindowPID, PID, % "ahk_id " Windows%A_Index%
+			If (WindowPID = Proc.ProcessId) {
+				HasWindow := 1
+				Break
+			}
+		}
+		If (!HasWindow) {
+			WinGet, Windows, List, ahk_class Chrome_WidgetWin_0
+			Loop, %Windows% {
+				WinGet, WindowPID, PID, % "ahk_id " Windows%A_Index%
+				If (WindowPID = Proc.ProcessId) {
+					HasWindow := 1
+					Break
+				}
+			}
+		}
+
+		; Only wait for processes with visible windows (active browser)
+		If (HasWindow) {
+			ReleaseMem()
+			Process, WaitClose, % Proc.ProcessId
+			Goto, Wait
+		}
 	}
 
+	; Brief pause for background processes to settle
+	Sleep, 2000
 	Return Notified
 }
 
@@ -537,8 +565,7 @@ RunUpdate() {
 			Install()
 		Else {
 			Progress(_Downloaded)
-			Gui, Add, Button, vUpdateButton gInstall w148 x86 y110 Default, %_StartUpdate%
-			GuiControl, Move, TaskSetField, y146
+			GuiControl, Show, vUpdateButton
 			GuiShow(True)
 		}
 	}
