@@ -1,0 +1,137 @@
+name: Release v1.0.12 final
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/release-v1.0.12-final.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch updater source
+        shell: pwsh
+        run: |
+          $path = 'Helium-WinUpdater.ahk'
+          $text = [System.IO.File]::ReadAllText($path)
+          $text = $text -replace '(?m)^;@Ahk2Exe-SetFileVersion\s+\S+$', ';@Ahk2Exe-SetFileVersion 1.0.12'
+          $text = $text -replace '(?m)^;@Ahk2Exe-SetProductVersion\s+\S+$', ';@Ahk2Exe-SetProductVersion 1.0.12'
+
+          if ($text -notmatch 'CheckWriteAccess\(\)\r?\nEnsureTaskFiles\(\)') {
+            $text = [regex]::Replace($text, 'Unelevate\(\)\r?\nCheckWriteAccess\(\)\r?\n', "Unelevate()`r`nCheckWriteAccess()`r`nEnsureTaskFiles()`r`n", 1)
+          }
+
+          $oldUi = 'If (!IsPortable And FileExist(A_ScriptDir "\" TaskCreateFile) And FileExist(A_ScriptDir "\" TaskRemoveFile)) {'
+          $text = $text.Replace($oldUi, 'If (!IsPortable) {')
+
+          $copyBlock = @'
+              Files := [ A_ScriptName ]
+              If (FileExist(A_ScriptDir "\" TaskCreateFile))
+                  Files.Push(TaskCreateFile)
+              If (FileExist(A_ScriptDir "\" TaskRemoveFile))
+                  Files.Push(TaskRemoveFile)
+          '@
+          $text = [regex]::Replace($text, '(?m)^\s*Files := \[ A_ScriptName, TaskCreateFile, TaskRemoveFile \]$', $copyBlock.TrimEnd(), 1)
+
+          if ($text -notmatch '(?m)^EnsureTaskFiles\(\) \{') {
+            $taskFunction = @'
+          EnsureTaskFiles() {
+              If (IsPortable Or !A_IsCompiled)
+                  Return
+
+              FileInstall, ScheduledTask-Create.ps1, %A_ScriptDir%\ScheduledTask-Create.ps1, 1
+              If (ErrorLevel)
+                  Die(_CopyError, TaskCreateFile " " _To "`n" A_ScriptDir)
+
+              FileInstall, ScheduledTask-Remove.ps1, %A_ScriptDir%\ScheduledTask-Remove.ps1, 1
+              If (ErrorLevel)
+                  Die(_CopyError, TaskRemoveFile " " _To "`n" A_ScriptDir)
+          }
+
+          '@
+            $text = $text.Replace('GetCurrentVersion() {', $taskFunction + 'GetCurrentVersion() {')
+          }
+
+          if ($text -notmatch 'FileInstall, ScheduledTask-Create\.ps1') { throw 'Scheduled task create script was not embedded.' }
+          if ($text -notmatch 'FileInstall, ScheduledTask-Remove\.ps1') { throw 'Scheduled task remove script was not embedded.' }
+          if ($text -match 'If \(!IsPortable And FileExist\(A_ScriptDir') { throw 'The task control still depends on loose helper files.' }
+
+          [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
+
+          $readmePath = 'README.md'
+          $readme = [System.IO.File]::ReadAllText($readmePath)
+          $newGettingStarted = '- Download the latest `Helium-WinUpdater.exe` from [this project''s releases page](https://github.com/nwn900/helium-winupdater/releases/latest), then run it to check for an update. The EXE contains the scheduled-task helper scripts and installs them when needed.'
+          $readme = [regex]::Replace($readme, '(?m)^- Download and extract the latest `Helium-WinUpdater\.zip`.*$', $newGettingStarted, 1)
+          [System.IO.File]::WriteAllText($readmePath, $readme, [System.Text.UTF8Encoding]::new($false))
+
+      - name: Download AutoHotkey v1 compiler
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'AutoHotkey_1.1.37.02.zip'
+          $dir = Join-Path $env:RUNNER_TEMP 'AutoHotkey_1.1.37.02'
+          Invoke-WebRequest -Uri 'https://github.com/AutoHotkey/AutoHotkey/releases/download/v1.1.37.02/AutoHotkey_1.1.37.02.zip' -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          "AHK_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Compile updater
+        shell: pwsh
+        run: |
+          $compiler = Get-ChildItem $env:AHK_DIR -Recurse -Filter 'Ahk2Exe.exe' | Select-Object -First 1
+          $base = Get-ChildItem $env:AHK_DIR -Recurse -Filter 'Unicode 32-bit.bin' | Select-Object -First 1
+          if (-not $compiler) { throw 'Ahk2Exe.exe was not found.' }
+          if (-not $base) { throw 'Unicode 32-bit.bin was not found.' }
+
+          $source = (Resolve-Path '.\Helium-WinUpdater.ahk').Path
+          $output = Join-Path $PWD 'Helium-WinUpdater.exe'
+          & $compiler.FullName /in $source /out $output /base $base.FullName /silent verbose
+          $code = $LASTEXITCODE
+          Write-Host "Ahk2Exe exit code: $code"
+          if ($null -ne $code -and $code -ne 0) { throw "Ahk2Exe failed with exit code $code." }
+          if (-not (Test-Path $output)) { throw 'Compiled EXE was not created.' }
+
+          $version = (Get-Item $output).VersionInfo.FileVersion
+          Write-Host "Compiled file version: $version"
+          if ($version -notlike '1.0.12*') { throw "Unexpected compiled file version: $version" }
+
+          $hash = (Get-FileHash $output -Algorithm SHA256).Hash.ToLowerInvariant()
+          "EXE_SHA256=$hash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Commit release source and binary
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Helium-WinUpdater.ahk Helium-WinUpdater.exe README.md
+          if (-not (git diff --cached --quiet)) {
+            git commit -m 'fix: keep scheduled update controls available'
+            git push origin HEAD:master
+          }
+
+      - name: Publish v1.0.12
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          ### Fixes
+          - The scheduled-update control is always visible for non-portable installations.
+          - The standalone EXE now embeds both scheduled-task PowerShell helpers.
+          - The updater extracts the helpers automatically, so users no longer need separate `.ps1` files.
+          - The updater can still copy loose helper files when the source script runs uncompiled.
+
+          SHA256: `$env:EXE_SHA256
+          "@
+          Set-Content -Path RELEASE_NOTES.md -Value $notes -Encoding utf8
+          gh release create v1.0.12 .\Helium-WinUpdater.exe --target master --title 'v1.0.12 - Restore scheduled update controls' --notes-file RELEASE_NOTES.md
