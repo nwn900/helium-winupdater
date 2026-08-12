@@ -1,7 +1,7 @@
 ; Helium WinUpdater - https://github.com/nwn900/helium-winupdater
 ; Based on LibreWolf WinUpdater by ltguillaume - https://codeberg.org/librewolf/winupdater
-;@Ahk2Exe-SetFileVersion 1.0.10
-;@Ahk2Exe-SetProductVersion 1.0.10
+;@Ahk2Exe-SetFileVersion 1.0.12
+;@Ahk2Exe-SetProductVersion 1.0.12
 
 ;@Ahk2Exe-Base Unicode 32*
 ;@Ahk2Exe-SetCompanyName Helium Community
@@ -96,6 +96,7 @@ If (ThisUpdaterRunning())
 	Die(_IsRunningError,, !Scheduled)
 Unelevate()
 CheckWriteAccess()
+EnsureTaskFiles()
 If (SettingTask Or !A_Args.Length())
 	GuiShow()
 If (SettingTask)
@@ -149,7 +150,7 @@ Init() {
 	Gui, Show, Hide, %_Updater% %CurrentUpdaterVersion%
 
 	If (SettingTask Or !A_Args.Length()) {
-		If (!IsPortable And FileExist(A_ScriptDir "\" TaskCreateFile) And FileExist(A_ScriptDir "\" TaskRemoveFile)) {
+		If (!IsPortable) {
 			Gui, Add, CheckBox, vTaskSetField gTaskSet x15 y+10 w290 cBCBCBC Center Check3 -Tabstop, % StrReplace(_SetTask, "{}", A_UserName)
 			TaskCheck()
 		}
@@ -293,8 +294,11 @@ CheckWriteAccess() {
 	FileCreateDir, %AppData%
 	If (ErrorLevel)
 		Die(_WritePermError, AppData)
-
-	Files := [ A_ScriptName, TaskCreateFile, TaskRemoveFile ]
+    Files := [ A_ScriptName ]
+    If (FileExist(A_ScriptDir "\" TaskCreateFile))
+        Files.Push(TaskCreateFile)
+    If (FileExist(A_ScriptDir "\" TaskRemoveFile))
+        Files.Push(TaskRemoveFile)
 	For Index, File in Files {
 		If (!FileExist(AppData "\" File))
 			FileCopy, %A_ScriptDir%\%File%, %AppData%
@@ -306,6 +310,18 @@ CheckWriteAccess() {
 	ExitApp
 }
 
+EnsureTaskFiles() {
+    If (IsPortable Or !A_IsCompiled)
+        Return
+
+    FileInstall, ScheduledTask-Create.ps1, %A_ScriptDir%\ScheduledTask-Create.ps1, 1
+    If (ErrorLevel)
+        Die(_CopyError, TaskCreateFile " " _To "`n" A_ScriptDir)
+
+    FileInstall, ScheduledTask-Remove.ps1, %A_ScriptDir%\ScheduledTask-Remove.ps1, 1
+    If (ErrorLevel)
+        Die(_CopyError, TaskRemoveFile " " _To "`n" A_ScriptDir)
+}
 GetCurrentVersion() {
 	; Read chrome.exe FileVersion for display (Chromium version, e.g. 148.0.7778.178)
 	If (Sz := DllCall("Version\GetFileVersionInfoSizeW", "WStr", Path, "Int", 0))

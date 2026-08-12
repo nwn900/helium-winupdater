@@ -9,7 +9,7 @@ A Windows updater for the [Helium browser](https://github.com/imputnet/helium), 
 
 ### Helium Setup
 
-- Download and extract the latest `Helium-WinUpdater.zip` from the [releases page](https://github.com/imputnet/helium/releases), then run `Helium-WinUpdater.exe` to check for an update. If one is available, it will be downloaded immediately.
+- Download the latest `Helium-WinUpdater.exe` from [this project's releases page](https://github.com/nwn900/helium-winupdater/releases/latest), then run it to check for an update. The EXE contains the scheduled-task helper scripts and installs them when needed.
 - On first run, Helium WinUpdater will copy itself to `%AppData%\Helium\WinUpdater` to be able to update itself without administrator privileges.
 
 ### Helium Portable
